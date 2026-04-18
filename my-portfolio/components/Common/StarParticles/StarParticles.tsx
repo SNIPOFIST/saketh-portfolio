@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 
-const QUANTITY = 140;
+const QUANTITY = 75;
 const STATICITY = 50;
-const EASE = 50;
+const EASE = 55;
 
 interface Circle {
   x: number;
@@ -157,30 +157,21 @@ const StarParticles = (): JSX.Element => {
         }
       }
 
-      // Fire-colored cursor trail (orange → red → transparent)
+      // Fire-colored cursor trail — no per-frame gradient objects
       trailCtx!.clearRect(0, 0, canvasSize.w, canvasSize.h);
+      trailCtx!.lineCap = "round";
       for (let i = cursorTrail.length - 1; i >= 0; i--) {
         const streak = cursorTrail[i];
         streak.life -= 1;
         if (streak.life <= 0) { cursorTrail.splice(i, 1); continue; }
         const alpha = streak.life / streak.maxLife;
-        const g = trailCtx!.createLinearGradient(streak.toX, streak.toY, streak.fromX, streak.fromY);
-        g.addColorStop(0,    `rgba(255, 160, 20, ${alpha * 0.95})`);
-        g.addColorStop(0.3,  `rgba(255, 80, 0, ${alpha * 0.8})`);
-        g.addColorStop(1,    `rgba(200, 0, 0, 0)`);
-
+        // Use a simple solid color — much cheaper than creating a gradient every frame
         trailCtx!.beginPath();
-        trailCtx!.lineCap = "round";
         trailCtx!.lineWidth = streak.width * alpha * 1.5;
-        trailCtx!.strokeStyle = g;
+        trailCtx!.strokeStyle = `rgba(255,${Math.round(100 + 60 * alpha)},20,${alpha * 0.85})`;
         trailCtx!.moveTo(streak.fromX, streak.fromY);
         trailCtx!.lineTo(streak.toX, streak.toY);
         trailCtx!.stroke();
-
-        trailCtx!.beginPath();
-        trailCtx!.fillStyle = `rgba(255, 200, 50, ${alpha * 0.7})`;
-        trailCtx!.arc(streak.toX, streak.toY, Math.max(0.8, streak.width * 0.6 * alpha), 0, Math.PI * 2);
-        trailCtx!.fill();
       }
 
       scrollDriftY *= 0.92;
@@ -198,20 +189,22 @@ const StarParticles = (): JSX.Element => {
 
       if (lastCursorPoint) {
         const dist = Math.hypot(e.clientX - lastCursorPoint.x, e.clientY - lastCursorPoint.y);
-        if (dist > 2) {
+        if (dist > 4) {
           cursorTrail.push({
             fromX: lastCursorPoint.x,
             fromY: lastCursorPoint.y,
             toX: e.clientX,
             toY: e.clientY,
-            width: 1.8 + Math.random() * 2.2,
-            life: 14,
-            maxLife: 14,
+            width: 1.8 + Math.random() * 2,
+            life: 10,
+            maxLife: 10,
           });
+          lastCursorPoint = { x: e.clientX, y: e.clientY };
         }
+      } else {
+        lastCursorPoint = { x: e.clientX, y: e.clientY };
       }
-      lastCursorPoint = { x: e.clientX, y: e.clientY };
-      if (cursorTrail.length > 100) cursorTrail.splice(0, cursorTrail.length - 100);
+      if (cursorTrail.length > 50) cursorTrail.splice(0, cursorTrail.length - 50);
     };
 
     const handleScroll = () => {
