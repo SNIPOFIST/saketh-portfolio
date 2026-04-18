@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/router";
 
 /* ── Realistic Pokeball SVG ───────────────────────────────── */
 const POKEBALL_SVG = `
@@ -80,10 +81,11 @@ function drawFireParticle(ctx: CanvasRenderingContext2D, p: FireParticle) {
 
 /* ── Component ────────────────────────────────────────────── */
 export default function PokemonCursor() {
-  const pokeballRef  = useRef<HTMLDivElement>(null);
+  const pokeballRef   = useRef<HTMLDivElement>(null);
   const fireCanvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef  = useRef<FireParticle[]>([]);
   const rafRef        = useRef<number>(0);
+  const router        = useRouter();
 
   /* Track state in refs — no React re-renders on mouse move */
   const pressedRef = useRef(false);
@@ -173,13 +175,23 @@ export default function PokemonCursor() {
     };
 
     const onClick = (e: MouseEvent) => {
+      // Don't spawn fire on link/button clicks — it leaves ugly marks on navigation
+      const target = e.target as HTMLElement;
+      if (target.closest("a") || target.closest("button") || target.tagName === "A" || target.tagName === "BUTTON") return;
       spawnFireBurst(e.clientX, e.clientY, particlesRef.current, 28);
+    };
+
+    // Clear fire particles on route change so they don't linger
+    const clearParticles = () => {
+      particlesRef.current.length = 0;
+      fctx.clearRect(0, 0, fc.width, fc.height);
     };
 
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mousedown", onDown);
     window.addEventListener("mouseup",   onUp);
     window.addEventListener("click",     onClick);
+    router.events.on("routeChangeStart", clearParticles);
 
     return () => {
       document.getElementById("pokecursor-style")?.remove();
@@ -189,8 +201,9 @@ export default function PokemonCursor() {
       window.removeEventListener("mousedown", onDown);
       window.removeEventListener("mouseup",   onUp);
       window.removeEventListener("click",     onClick);
+      router.events.off("routeChangeStart", clearParticles);
     };
-  }, []);
+  }, [router.events]);
 
   return (
     <>

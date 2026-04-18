@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/router";
 
 const QUANTITY = 75;
 const STATICITY = 50;
@@ -31,6 +32,7 @@ interface CursorStreak {
 const StarParticles = (): JSX.Element => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const trailCanvasRef = useRef<HTMLCanvasElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -213,10 +215,18 @@ const StarParticles = (): JSX.Element => {
       lastScrollY = cur;
     };
 
+    // Clear trail on route change so marks don't linger between pages
+    const clearTrail = () => {
+      cursorTrail.length = 0;
+      lastCursorPoint = null;
+      trailCtx!.clearRect(0, 0, canvasSize.w, canvasSize.h);
+    };
+
     resizeCanvas();
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("scroll", handleScroll, { passive: true });
     window.addEventListener("resize", resizeCanvas);
+    router.events.on("routeChangeStart", clearTrail);
     rafId = requestAnimationFrame(animate);
 
     return () => {
@@ -224,8 +234,9 @@ const StarParticles = (): JSX.Element => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", resizeCanvas);
+      router.events.off("routeChangeStart", clearTrail);
     };
-  }, []);
+  }, [router.events]);
 
   return (
     <>
